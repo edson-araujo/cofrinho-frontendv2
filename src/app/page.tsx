@@ -20,7 +20,7 @@ export default function HomePage() {
         router.replace("/login");
       }
       setLoading(false);
-    }, 10000);
+    }, 1000);
 
   }, [router, setLoading]);
 

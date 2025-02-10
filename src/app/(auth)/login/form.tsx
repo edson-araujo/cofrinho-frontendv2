@@ -1,7 +1,7 @@
 import { FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { loginSchema } from "./schema";
-import { login } from "@/services/auth";
+import { loginUser } from "@/services/auth";
 import { useRouter } from "next/navigation";
 import { FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -10,7 +10,17 @@ import { useState } from "react";
 import { EyeIcon, EyeOffIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export default function LoginForm() {
+interface LoginFormInputs {
+  email: string;
+  password: string;
+}
+
+interface LoginResponse {
+  success: boolean;
+  message?: string;
+}
+
+export default function LoginForm({ onSwitch }: { onSwitch: () => void }) {
   const router = useRouter();
   const methods = useForm<LoginFormInputs>({
     resolver: zodResolver(loginSchema),
@@ -20,22 +30,15 @@ export default function LoginForm() {
     },
   });
 
-  interface LoginFormInputs {
-    email: string;
-    password: string;
-  }
-
-  interface LoginResponse {
-    success: boolean;
-    message?: string;
-  }
-
   const onSubmit = async (data: LoginFormInputs) => {
-    const response: LoginResponse = await login(data);
-    if (response.success) {
+    const response = await loginUser(data);
+    if (response && response.status === 200) {
       router.push("/dashboard");
+    } else if (response) {
+      const responseData: LoginResponse = await response.json();
+      alert(responseData.message);
     } else {
-      alert(response.message);
+      alert("An unexpected error occurred.");
     }
   };
 
@@ -45,7 +48,7 @@ export default function LoginForm() {
   return (
     <FormProvider {...methods}>
       <form className="space-y-3 w-full" onSubmit={handleSubmit(onSubmit)}>
-        <div className="grid gap-4">
+        <div className="grid gap-4 p-4">
           <div className="grid gap-2">
             <FormField
               control={control}
@@ -121,6 +124,13 @@ export default function LoginForm() {
           <Button variant="outline" className="w-full">
             Entrar com Google
           </Button>
+
+          <p className="text-sm text-center mt-4">
+            Não tem uma conta?{" "}
+            <button type="button" onClick={onSwitch} className="text-primary hover:underline">
+              Criar Conta
+            </button>
+          </p>
         </div>
       </form>
     </FormProvider>

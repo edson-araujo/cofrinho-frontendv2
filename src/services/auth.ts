@@ -1,20 +1,18 @@
-import { setAuthCookie } from "@/lib/cookies";
+import { apiRequest } from "@/lib/api";
+import type { LoginFormInputs, RegisterFormInputs, VerifyRespnse } from "../types/auth";
 
-export async function login({ email, password }: { email: string; password: string }) {
-  try {
-    const response = await fetch("http://localhost:8080/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
+export async function registerUser(userData: RegisterFormInputs) {
+	return await apiRequest("/auth/signup", "POST", userData);
+}
 
-    if (!response.ok) throw new Error("Credenciais inválidas");
+export async function loginUser(userData: LoginFormInputs) {
+	return await apiRequest("auth/login", "POST", { userData });
+}
 
-    const { token } = await response.json();
-    setAuthCookie(token);
+export async function verifyEmail(data: VerifyRespnse) {
+	return await apiRequest("/auth/autenticar", "POST", { data });
+}
 
-    return { success: true };
-  } catch (error) {
-    return { success: false, message: (error as Error).message };
-  }
+export async function logoutUser() {
+	return await apiRequest("auth/logout", "POST");
 }
