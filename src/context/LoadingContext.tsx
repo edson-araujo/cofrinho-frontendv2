@@ -18,7 +18,7 @@ export function LoadingProvider({ children }: { children: ReactNode }) {
     <LoadingContext.Provider value={{ isLoading, setLoading }}>
       {children}
       {isLoading && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
           <Spinner size="xl" />
         </div>
       )}

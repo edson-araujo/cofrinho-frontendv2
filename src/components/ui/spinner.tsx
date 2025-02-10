@@ -9,7 +9,9 @@ const Spinner = ({ size = "md" }: { size?: "sm" | "md" | "lg" | "xl" }) => {
   };
 
   return (
-    <div className={`animate-spin rounded-full border-t-primary border-gray-200 ${sizes[size]}`} />
+    <div className="fixed inset-0 flex items-center justify-center bg-white/30 backdrop-blur-sm z-50">
+      <div className={`animate-spin rounded-full border-t-primary border-white ${sizes[size]}`} />
+    </div>
   );
 };
 

@@ -1,27 +1,21 @@
 import { FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { loginSchema } from "./schema";
-import { loginUser } from "@/services/auth";
-import { useRouter } from "next/navigation";
 import { FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { EyeIcon, EyeOffIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 interface LoginFormInputs {
   email: string;
   password: string;
 }
 
-interface LoginResponse {
-  success: boolean;
-  message?: string;
-}
-
-export default function LoginForm({ onSwitch }: { onSwitch: () => void }) {
-  const router = useRouter();
+export default function LoginForm({ onSwitch, userAutenticado }: { onSwitch: (nextStep: "login" | "register" | "autenticar" | "reenviar") => void, userAutenticado?: boolean }) {
+  const { toast } = useToast()
   const methods = useForm<LoginFormInputs>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -31,20 +25,20 @@ export default function LoginForm({ onSwitch }: { onSwitch: () => void }) {
   });
 
   const onSubmit = async (data: LoginFormInputs) => {
-    const response = await loginUser(data);
-    if (response && response.status === 200) {
-      router.push("/dashboard");
-    } else if (response) {
-      const responseData: LoginResponse = await response.json();
-      alert(responseData.message);
-    } else {
-      alert("An unexpected error occurred.");
-    }
+    console.log(data)
   };
 
   const [showPassword, setShowPassword] = useState(false);
   const { handleSubmit, control } = methods;
 
+  useEffect(() => {
+    if (userAutenticado) {
+      toast({
+        title: "Conta autenticada com sucesso!",
+        description: "Você já pode acessar sua conta.",
+      });
+    }
+  }, [userAutenticado, toast]);
   return (
     <FormProvider {...methods}>
       <form className="space-y-3 w-full" onSubmit={handleSubmit(onSubmit)}>
@@ -125,9 +119,9 @@ export default function LoginForm({ onSwitch }: { onSwitch: () => void }) {
             Entrar com Google
           </Button>
 
-          <p className="text-sm text-center mt-4">
+          <p className="text-sm text-center mt-4 text-muted-foreground">
             Não tem uma conta?{" "}
-            <button type="button" onClick={onSwitch} className="text-primary hover:underline">
+            <button type="button" onClick={() => onSwitch("register")} className="text-foreground hover:underline">
               Criar Conta
             </button>
           </p>

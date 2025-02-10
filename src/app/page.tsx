@@ -12,15 +12,13 @@ export default function HomePage() {
   useEffect(() => {
     setLoading(true);
 
-    setTimeout(() => {
-      const token = getAuthCookie();
-      if (token) {
-        router.replace("/dashboard");
-      } else {
-        router.replace("/login");
-      }
-      setLoading(false);
-    }, 1000);
+    const token = getAuthCookie();
+    if (token) {
+      router.replace("/dashboard");
+    } else {
+      router.replace("/login");
+    }
+    setLoading(false);
 
   }, [router, setLoading]);
 

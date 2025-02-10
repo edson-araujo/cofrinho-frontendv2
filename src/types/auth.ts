@@ -20,8 +20,14 @@ export interface RegisterFormInputs {
   export interface VerifyRespnse {
     email: string;
     codigoVerificacao: string;
+    [key: string]: unknown;
   }
   
   export interface ReenviarEmailResponse {
     email: string;
+  }
+
+  export interface ReenviarCodigoResponse {
+    email: string;
+    [key: string]: unknown;
   }

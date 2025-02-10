@@ -1,7 +1,17 @@
-export async function apiRequest(endpoint: string, method = "POST", data?: Record<string, unknown>) {
+import { useLoading } from "@/context/LoadingContext";
+
+export function useApiRequest() {
+  const { setLoading } = useLoading();
+
+  return async function apiRequest<T = unknown>(
+    endpoint: string,
+    method: "GET" | "POST" | "PUT" | "DELETE" = "POST",
+    data?: T
+  ): Promise<Response | null> {
     const API_URL = "http://localhost:8080";
     
     try {
+      setLoading(true);
       const response = await fetch(`${API_URL}${endpoint}`, {
         method,
         headers: {
@@ -21,9 +31,12 @@ export async function apiRequest(endpoint: string, method = "POST", data?: Recor
         return response;
       }
 
-      return null; // Caso a API retorne um status 204 No Content
+      return null;
     } catch (error) {
       console.error(`Erro na requisição ${method} ${endpoint}:`, error);
       throw error;
+    } finally {
+      setLoading(false);
     }
+  };
 }

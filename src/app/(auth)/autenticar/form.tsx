@@ -3,19 +3,31 @@
 import { FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { verifySchema } from "./schema";
-import { useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
-import { verifyEmail } from "@/services/auth";
+import { useAuth } from "@/services/auth";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import type { ReenviarCodigoResponse } from "@/types/auth";
+import { useToast } from "@/hooks/use-toast";
 
 interface VerifyFormInputs {
     email: string;
     codigoVerificacao: string;
+    [key: string]: string;
 }
 
-export default function VerifyForm({ onSwitch, email }: { onSwitch: () => void; email: string }) {
-    const router = useRouter();
+export default function VerifyForm({
+    onSwitch,
+    email,
+}: {
+    onSwitch: (
+        nextStep: "login" | "register" | "autenticar" | "reenviar",
+        email: string,
+        userAutenticado: boolean,
+    ) => void;
+    email: string;
+}) {
+    const authService = useAuth();
     const methods = useForm<VerifyFormInputs>({
         resolver: zodResolver(verifySchema),
         defaultValues: {
@@ -27,7 +39,7 @@ export default function VerifyForm({ onSwitch, email }: { onSwitch: () => void; 
     const { handleSubmit, setValue, watch } = methods;
     const [loading, setLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
-
+    const { toast } = useToast()
     const codeInputsRef = useRef<Array<HTMLInputElement | null>>([]);
 
     useEffect(() => {
@@ -71,12 +83,12 @@ export default function VerifyForm({ onSwitch, email }: { onSwitch: () => void; 
     const onSubmit = async (data: VerifyFormInputs) => {
         setLoading(true);
         setErrorMessage("");
-
+        data.email = email;
+        data.codigoVerificacao = data.codigoVerificacao.replace(/\D/g, "");
         try {
-            const response = await verifyEmail(data);
+            const response = await authService.autenticarConta(data);
             if (response?.status === 200) {
-                alert("Conta verificada com sucesso!");
-                router.push("/login");
+                onSwitch("login", "", true);
             } else {
                 if (response) {
                     const responseData = await response.json();
@@ -96,10 +108,41 @@ export default function VerifyForm({ onSwitch, email }: { onSwitch: () => void; 
         }
     };
 
+    const reenviarCodigo = async (email: string) => {
+        try {
+            const reenviarCodigoResponse: ReenviarCodigoResponse = {
+                email: email,
+            };
+            const response = await authService.reenviarCodigoAutenticacao(reenviarCodigoResponse);
+            if (response?.status === 200) {
+                toast({
+                    title: "Código reenviado com sucesso!",
+                    description: "Um novo código de verificação foi enviado para o seu email.",
+                });
+                setErrorMessage("");
+            } else {
+                if (response) {
+                    const responseData = await response.json();
+                    setErrorMessage(responseData?.message || "Erro ao reenviar código de verificação.");
+                } else {
+                    setErrorMessage("Erro ao reenviar código de verificação.");
+                }
+            }
+        } catch (error) {
+            if (error instanceof Error) {
+                setErrorMessage(
+                    error.message || "Erro ao reenviar código de verificação.",
+                );
+            } else {
+                setErrorMessage("Erro ao reenviar código de verificação.");
+            }
+        }
+    };
+
     return (
         <FormProvider {...methods}>
             <form
-                className="max-w-md mx-auto space-y-6 bg-white p-6 rounded-lg shadow-md"
+                className="max-w-md mx-auto space-y-6 bg-white p-6"
                 onSubmit={handleSubmit(onSubmit)}
             >
                 <h2 className="text-center text-xl font-semibold text-foreground ">
@@ -143,22 +186,25 @@ export default function VerifyForm({ onSwitch, email }: { onSwitch: () => void; 
                         ))}
                 </div>
 
-                <Button type="submit" className="w-full" isLoading={loading}>
+                <Button
+                    type="submit"
+                    className="w-full"
+                    isLoading={loading}
+                    onClick={handleSubmit(onSubmit)}
+                >
                     Verificar Conta
                 </Button>
 
                 <p className="text-center text-muted-foreground">
-                    <span>
-                        Não recebeu um código&nbsp;
-                    </span>
+                    <span>Não recebeu um código&nbsp;</span>
                     <span
                         className="font-semibold text-foreground cursor-pointer hover:text-muted-foreground"
-                        onClick={() => onSwitch()}
-                        onKeyUp={() => { }}>
+                        onClick={() => reenviarCodigo(email)}
+                        onKeyUp={() => { }}
+                    >
                         Clique para reenviar
                     </span>
                 </p>
-
             </form>
         </FormProvider>
     );

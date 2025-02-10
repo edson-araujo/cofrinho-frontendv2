@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "framer-motion";
 import LoginForm from "./login/form";
 import RegisterForm from "./register/form";
 import VerifyForm from "./autenticar/form";
@@ -9,32 +8,28 @@ import ReenviarForm from "./reenviar/form";
 
 export default function AuthSwitcher() {
     const [step, setStep] = useState<"login" | "register" | "autenticar" | "reenviar">("login");
-    const [userEmail, setUserEmail] = useState(""); // Estado para armazenar o e-mail
+    const [userEmail, setUserEmail] = useState("");
+    const [userAutenticado, setUserAutenticado] = useState(false);
 
-    const slideVariants = {
-        hiddenRight: { x: "100%", opacity: 0 },
-        hiddenLeft: { x: "-100%", opacity: 0 },
-        visible: { x: "0%", opacity: 1 },
-        exitRight: { x: "-100%", opacity: 0 },
-        exitLeft: { x: "100%", opacity: 0 },
+    const handleSwitch = (nextStep?: "login" | "register" | "autenticar" | "reenviar", email?: string, userAutenticado?: boolean) => {
+        if (email) {
+            setUserEmail(email);
+        }
+        if (userAutenticado) {
+            setUserAutenticado(userAutenticado);
+        }
+
+        setStep(nextStep || step);
     };
 
     return (
-        <motion.div
-            key={step}
-            variants={slideVariants}
-            initial={"hiddenLeft"}
-            animate="visible"
-            exit={step === "register" ? "exitLeft" : "exitRight"}
-            transition={{ type: "spring", stiffness: 100, damping: 15 }}
-            className=" bg-white p-6 sm:p-8 md:p-6 rounded-lg shadow-lg m-10"
-        >
+        <div className=" bg-white p-4 sm:p-8 md:p-6 m-0 md:m-8 rounded-lg shadow-lg justify-center">
             <div className="relative w-full max-w-xl min-h-fit overflow-hidden">
-                {step === "login" && <LoginForm onSwitch={() => setStep("register")} />}
-                {step === "register" && <RegisterForm onSwitch={(email) => { setUserEmail(email); setStep("autenticar"); }} />}
-                {step === "autenticar" && <VerifyForm email={userEmail} onSwitch={() => setStep("reenviar")} />}
-                {step === "reenviar" && <ReenviarForm email={userEmail} onSwitch={() => setStep("autenticar")} />}
+                {step === "login" && <LoginForm userAutenticado={userAutenticado} onSwitch={(nextStep: "login" | "register" | "autenticar" | "reenviar", userAutenticado?: boolean) => handleSwitch(nextStep, undefined, userAutenticado)} />}
+                {step === "register" && <RegisterForm onSwitch={(nextStep, email) => handleSwitch(nextStep || "autenticar", email)} />}
+                {step === "autenticar" && <VerifyForm email={userEmail} onSwitch={(nextStep, email, userAutenticado) => handleSwitch(nextStep || "reenviar", "", userAutenticado)} />}
+                {step === "reenviar" && <ReenviarForm email={userEmail} onSwitch={(nextStep) => handleSwitch(nextStep || "autenticar")} />}
             </div>
-        </motion.div>
+        </div>
     );
 }
