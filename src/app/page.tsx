@@ -16,7 +16,7 @@ export default function HomePage() {
     if (token) {
       router.replace("/dashboard");
     } else {
-      router.replace("/login");
+      router.replace("/auth");
     }
     setLoading(false);
 

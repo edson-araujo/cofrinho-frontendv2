@@ -15,12 +15,20 @@ import { Button } from "@/components/ui/button";
 import { FaCheck, FaRegCircle } from "react-icons/fa6";
 import { EyeIcon, EyeOffIcon } from "lucide-react";
 
-export default function ConfidenceDados({ onSwitch, updateFormData, formData }: { onSwitch: (nextStep: "login" | "register" | "autenticar" | "reenviar", email?: string) => void, updateFormData: (data: Partial<RegisterFormInputs>) => void, formData: RegisterFormInputs }) {
+export default function ConfidenceDados({ onSwitch, updateFormData, formData, formErrors, setFormErrors, setGlobalError }: {
+    onSwitch: (nextStep: "login" | "register" | "autenticar" | "reenviar", email?: string) => void,
+    updateFormData: (data: Partial<RegisterFormInputs>) => void,
+    formData: RegisterFormInputs,
+    formErrors: Record<string, string>;
+    setFormErrors: (errors: Record<string, string>) => void;
+    setGlobalError: (error: string | null) => void;
+}) {
     const methods = useForm({
         resolver: zodResolver(registerSchema),
         defaultValues: formData,
     });
 
+    const { handleSubmit, control, setError } = methods;
     const [showPassword, setShowPassword] = useState(false);
     const [passwordCriteria, setPasswordCriteria] = useState({
         minLength: false,
@@ -30,35 +38,61 @@ export default function ConfidenceDados({ onSwitch, updateFormData, formData }: 
         senhasIguais: false,
     });
 
-    const handlePasswordChange = (password: string, password2: string) => {
+    const handlePasswordChange = (password: string, confirmPassword: string) => {
         setPasswordCriteria({
             minLength: password.length >= 8,
             upperCase: /[A-Z]/.test(password),
             number: /[0-9]/.test(password),
             specialChar: /[@$!%*?&]/.test(password),
-            senhasIguais: password === password2,
+            senhasIguais: password === confirmPassword,
         });
     };
 
-    const matchingPasswords = (password: string, password2: string) => {
+    const matchingPasswords = (password: string, confirmPassword: string) => {
         setPasswordCriteria({
             ...passwordCriteria,
-            senhasIguais: password === password2,
+            senhasIguais: password === confirmPassword,
         });
     };
+
     const authService = useAuth();
+    const { clearErrors } = methods;
+
     const onSubmit = async (data: RegisterFormInputs) => {
-        debugger
+        if (Object.keys(formErrors).some(key => formErrors[key] !== "")) return;
+        formatarNomeSobrenomePrimeiraLetraMaiuscula(data);
         const response = await authService.registerUser(formData);
-        if (response?.status === 201) {
+
+        if (response && "error" in response) {
+            setFormErrors({});
+            setGlobalError(null);
+            if (response.fieldErrors) {
+                for (const key of Object.keys(response.fieldErrors) as Array<keyof RegisterFormInputs>) {
+                    setError(key as string, {
+                        type: "manual",
+                        message: response.fieldErrors[key]
+                    });
+                }
+                setFormErrors(response.fieldErrors);
+            }
+
+            if (response.error) {
+                setGlobalError(response.error);
+            }
+        } else if (response?.status === 201) {
             onSwitch("autenticar", data.email);
-        } else {
-            const errorMessage = await response?.json();
-            alert(errorMessage.message);
         }
     };
 
-    const { handleSubmit, control } = methods;
+    const formatarNomeSobrenomePrimeiraLetraMaiuscula = (data: RegisterFormInputs) => {
+        const nome = data.nome.split(" ");
+        const sobrenome = data.sobrenome.split(" ");
+        const nomeFormatado = nome.map((nome) => nome.charAt(0).toUpperCase() + nome.slice(1).toLowerCase());
+        const sobrenomeFormatado = sobrenome.map((sobrenome) => sobrenome.charAt(0).toUpperCase() + sobrenome.slice(1).toLowerCase());
+        data.nome = nomeFormatado.join(" ");
+        data.sobrenome = sobrenomeFormatado.join(" ");
+        updateFormData(data);
+    };
 
     return (
         <FormProvider {...methods}>
@@ -67,21 +101,27 @@ export default function ConfidenceDados({ onSwitch, updateFormData, formData }: 
                     <FormField
                         control={control}
                         name="password"
-                        render={({ field }) => (
+                        render={({ field, fieldState }) => (
                             <FormItem>
                                 <FormLabel className="font-medium text-gray-600">Senha</FormLabel>
                                 <FormControl>
                                     <div className="relative">
                                         <Input
                                             {...field}
+                                            value={field.value || ''}
                                             type={showPassword ? "text" : "password"}
                                             placeholder="Crie uma senha segura"
                                             onChange={(e) => {
                                                 field.onChange(e);
-                                                handlePasswordChange(e.target.value, methods.getValues("password2") as string);
-                                                updateFormData({ password: e.target.value })
+                                                handlePasswordChange(e.target.value, methods.getValues("confirmPassword") as string);
+                                                updateFormData({ password: e.target.value });
+                                                clearErrors("password"); // Remove erro ao corrigir input
+                                            }}
+                                            onPaste={(e) => {
+                                                e.preventDefault(); // Impede a ação de colar
                                             }}
                                         />
+
                                         <div
                                             className="absolute inset-y-0 right-0 flex items-center pr-3 cursor-pointer"
                                             onClick={() => setShowPassword(!showPassword)}
@@ -95,22 +135,34 @@ export default function ConfidenceDados({ onSwitch, updateFormData, formData }: 
                                         </div>
                                     </div>
                                 </FormControl>
+                                {fieldState.error && <p className="text-red-500 text-sm">{fieldState.error.message}</p>}
                             </FormItem>
                         )}
                     />
 
+
                     <FormField
                         control={control}
-                        name="password2"
-                        render={({ field }) => (
+                        name="confirmPassword"
+                        render={({ field, fieldState }) => (
                             <FormItem>
                                 <FormLabel className="font-medium text-gray-600">Confirme a senha</FormLabel>
                                 <FormControl>
-                                    <Input {...field} type="password" placeholder="Repita a senha" value={field.value as string} onChange={(e) => {
-                                        field.onChange(e);
-                                        matchingPasswords(methods.getValues("password") as string, e.target.value);
-                                    }} />
+                                    <Input
+                                        {...field}
+                                        type="password"
+                                        placeholder="Repita a senha"
+                                        value={field.value || ''}
+                                        onChange={(e) => {
+                                            field.onChange(e);
+                                            matchingPasswords(methods.getValues("password") as string, e.target.value);
+                                        }}
+                                        onPaste={(e) => {
+                                            e.preventDefault(); // Impede a ação de colar
+                                        }}
+                                    />
                                 </FormControl>
+                                {fieldState.error && <p className="text-red-500 text-sm">{fieldState.error.message}</p>}
                             </FormItem>
                         )}
                     />
@@ -138,6 +190,7 @@ export default function ConfidenceDados({ onSwitch, updateFormData, formData }: 
                             </li>
                         </ul>
                     </div>
+
                     <Button type="submit" className="w-full">
                         Criar Conta
                     </Button>

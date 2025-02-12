@@ -5,15 +5,15 @@ export const registerSchema = z.object({
   sobrenome: z.string().min(2, "O sobrenome deve ter pelo menos 2 caracteres"),
   email: z.string().email("Digite um e-mail válido"),
   password: z.string()
-    .min(8, "A senha deve ter pelo menos 8 caracteres")
+    .min(8, "A senha deve atender os critérios de segurança")
     .regex(/[A-Z]/, "A senha deve conter pelo menos uma letra maiúscula")
     .regex(/[0-9]/, "A senha deve conter pelo menos um número")
     .regex(/[@$!%*?&]/, "A senha deve conter pelo menos um caractere especial"),
-  password2: z.string().min(8, "A senha deve ter pelo menos 8 caracteres")
+  confirmPassword: z.string().min(8, "A senha deve atender os critérios de segurança")
   .regex(/[A-Z]/, "A senha deve conter pelo menos uma letra maiúscula")
   .regex(/[0-9]/, "A senha deve conter pelo menos um número")
   .regex(/[@$!%*?&]/, "A senha deve conter pelo menos um caractere especial"),
-}).refine((data) => data.password === data.password2, {
+}).refine((data) => data.password === data.confirmPassword, {
   message: "As senhas precisam ser iguais",
-  path: ["password2"],
+  path: ["confirmPassword"],
 });;

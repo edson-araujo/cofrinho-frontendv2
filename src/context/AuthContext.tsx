@@ -17,7 +17,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const token = getAuthCookie();
     if (!token) {
-      router.push("/login"); // Se não estiver logado, redireciona para o login
+      router.push("/auth"); // Se não estiver logado, redireciona para o login
     } else {
       setIsAuthenticated(true);
     }

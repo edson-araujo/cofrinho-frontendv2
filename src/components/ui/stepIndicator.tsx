@@ -36,7 +36,7 @@ const StepIndicator: React.FC<StepIndicatorProps> = ({
                         fill="none"
                         stroke="currentColor"
                         strokeWidth={strokeWidth}
-                        className="text-muted-foreground"
+                        className="text-primary/20"
                     />
                     <circle
                         cx={size / 2}

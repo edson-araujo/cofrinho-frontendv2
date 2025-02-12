@@ -41,6 +41,8 @@ export default function VerifyForm({
     const [errorMessage, setErrorMessage] = useState("");
     const { toast } = useToast()
     const codeInputsRef = useRef<Array<HTMLInputElement | null>>([]);
+    const [timer, setTimer] = useState(120);
+    const [isDisabled, setIsDisabled] = useState(true);
 
     useEffect(() => {
         codeInputsRef.current[0]?.focus();
@@ -91,8 +93,12 @@ export default function VerifyForm({
                 onSwitch("login", "", true);
             } else {
                 if (response) {
-                    const responseData = await response.json();
-                    setErrorMessage(responseData?.message || "Erro ao verificar conta.");
+                    if (response instanceof Response) {
+                        const responseData = await response.json();
+                        setErrorMessage(responseData?.message || "Erro ao verificar conta.");
+                    } else {
+                        setErrorMessage(response.error || "Erro ao verificar conta.");
+                    }
                 } else {
                     setErrorMessage("Erro ao verificar conta.");
                 }
@@ -108,36 +114,43 @@ export default function VerifyForm({
         }
     };
 
-    const reenviarCodigo = async (email: string) => {
+    const reenviarCodigo: (email: string) => Promise<void> = async (email: string) => {
+        if (isDisabled) return;
+
         try {
-            const reenviarCodigoResponse: ReenviarCodigoResponse = {
-                email: email,
-            };
-            const response = await authService.reenviarCodigoAutenticacao(reenviarCodigoResponse);
-            if (response?.status === 200) {
-                toast({
-                    title: "Código reenviado com sucesso!",
-                    description: "Um novo código de verificação foi enviado para o seu email.",
-                });
-                setErrorMessage("");
-            } else {
-                if (response) {
-                    const responseData = await response.json();
-                    setErrorMessage(responseData?.message || "Erro ao reenviar código de verificação.");
-                } else {
-                    setErrorMessage("Erro ao reenviar código de verificação.");
-                }
+            const reenviarCodigoResponse: ReenviarCodigoResponse = { email };
+            const { error } = await authService.reenviarCodigoAutenticacao(reenviarCodigoResponse);
+
+            if (error) {
+                setErrorMessage(error);
+                return;
             }
-        } catch (error) {
-            if (error instanceof Error) {
-                setErrorMessage(
-                    error.message || "Erro ao reenviar código de verificação.",
-                );
-            } else {
-                setErrorMessage("Erro ao reenviar código de verificação.");
-            }
+
+            toast({
+                title: "Código reenviado com sucesso!",
+                description: "Um novo código de verificação foi enviado para o seu email.",
+            });
+
+            setErrorMessage("");
+            setIsDisabled(true);
+            setTimer(120);
+        } catch {
+            setErrorMessage("Erro ao reenviar código.");
         }
     };
+
+    useEffect(() => {
+        if (isDisabled && timer > 0) {
+            const interval = setInterval(() => {
+                setTimer(prev => prev - 1);
+            }, 1000);
+
+            return () => clearInterval(interval); // Cleanup ao desmontar o componente
+        }
+        if (timer === 0) {
+            setIsDisabled(false); // Habilita o botão novamente após o tempo acabar
+        }
+    }, [timer, isDisabled]);
 
     return (
         <FormProvider {...methods}>
@@ -196,15 +209,24 @@ export default function VerifyForm({
                 </Button>
 
                 <p className="text-center text-muted-foreground">
-                    <span>Não recebeu um código&nbsp;</span>
+                    <span>Não recebeu um código?&nbsp;</span>
                     <span
-                        className="font-semibold text-foreground cursor-pointer hover:text-muted-foreground"
-                        onClick={() => reenviarCodigo(email)}
-                        onKeyUp={() => { }}
+                        className={`font-semibold text-foreground ${isDisabled ? "cursor-not-allowed text-gray-400" : "cursor-pointer hover:text-muted-foreground"
+                            }`}
+                        onClick={() => !isDisabled && reenviarCodigo(email)}
+                        onKeyUp={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                                if (!isDisabled) {
+                                    reenviarCodigo(email);
+                                }
+                            }
+                        }}
                     >
-                        Clique para reenviar
+                        <br />
+                        {isDisabled ? `Tente novamente em ${Math.floor(timer / 60)}:${(timer % 60).toString().padStart(2, "0")}` : "Clique aqui para reenviar"}
                     </span>
                 </p>
+
             </form>
         </FormProvider>
     );

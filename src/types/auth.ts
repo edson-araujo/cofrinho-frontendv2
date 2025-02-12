@@ -2,7 +2,6 @@ export interface RegisterFormInputs {
     nome: string;
     sobrenome: string;
     email: string;
-    password: string;
     [key: string]: unknown;
   }
   
@@ -29,5 +28,12 @@ export interface RegisterFormInputs {
 
   export interface ReenviarCodigoResponse {
     email: string;
+    [key: string]: unknown;
+  }
+
+  export interface alterarSenhaResponse {
+    novaSenha: string;
+    novaSenhaConfirmacao: string;
+    codigoVerificacao: string;
     [key: string]: unknown;
   }

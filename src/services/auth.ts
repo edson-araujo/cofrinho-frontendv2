@@ -9,7 +9,7 @@ export function useAuth() {
   }
 
   async function loginUser(userData: LoginFormInputs) {
-    return await apiRequest("auth/login", "POST", { userData });
+    return await apiRequest("/auth/login", "POST", userData);
   }
 
   async function autenticarConta(data: VerifyRespnse) {
@@ -24,11 +24,17 @@ export function useAuth() {
     return await apiRequest("auth/logout", "POST");
   }
 
+  async function esqueciSenha(data: ReenviarCodigoResponse) {
+    return await apiRequest("/auth/esqueciSenha", "POST", data );
+  }
+
+  
   return {
     registerUser,
     loginUser,
     autenticarConta,
     logoutUser,
     reenviarCodigoAutenticacao,
+    esqueciSenha
   };
 }

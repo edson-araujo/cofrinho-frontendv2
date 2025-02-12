@@ -1,21 +1,35 @@
 import { FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { loginSchema } from "./schema";
-import { FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
+import {
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { EyeIcon, EyeOffIcon } from "lucide-react";
+import { AlertCircle, EyeIcon, EyeOffIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/services/auth";
+import type { LoginFormInputs } from "@/types/auth";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { on } from "events";
 
-interface LoginFormInputs {
-  email: string;
-  password: string;
-}
-
-export default function LoginForm({ onSwitch, userAutenticado }: { onSwitch: (nextStep: "login" | "register" | "autenticar" | "reenviar") => void, userAutenticado?: boolean }) {
-  const { toast } = useToast()
+export default function LoginForm({
+  onSwitch,
+  userAutenticado,
+}: {
+  onSwitch: (
+    nextStep: "login" | "register" | "autenticar" | "reenviar",
+    email: string,
+    userAutenticado: boolean,
+  ) => void;
+  userAutenticado?: boolean;
+}) {
+  const { toast } = useToast();
   const methods = useForm<LoginFormInputs>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -24,8 +38,21 @@ export default function LoginForm({ onSwitch, userAutenticado }: { onSwitch: (ne
     },
   });
 
+  const authService = useAuth();
+  const [globalError, setGlobalError] = useState<string | null>(null);
   const onSubmit = async (data: LoginFormInputs) => {
-    console.log(data)
+    const { data: responseData, error, status } = await authService.loginUser(data);
+    debugger
+    if (error) {
+      setGlobalError(error);
+      if (status === 401) {
+        onSwitch("autenticar", data.email, false);
+      }
+      return;
+    }
+
+
+    toast({ title: "Sucesso", description: "Login realizado com sucesso!" });
   };
 
   const [showPassword, setShowPassword] = useState(false);
@@ -39,10 +66,21 @@ export default function LoginForm({ onSwitch, userAutenticado }: { onSwitch: (ne
       });
     }
   }, [userAutenticado, toast]);
+
   return (
     <FormProvider {...methods}>
       <form className="space-y-3 w-full" onSubmit={handleSubmit(onSubmit)}>
         <div className="grid gap-4 p-4">
+          {globalError && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle className="font-semibold">Atenção</AlertTitle>
+              <AlertDescription>
+                {globalError}
+              </AlertDescription>
+            </Alert>
+
+          )}
           <div className="grid gap-2">
             <FormField
               control={control}
@@ -58,6 +96,10 @@ export default function LoginForm({ onSwitch, userAutenticado }: { onSwitch: (ne
                       id="email"
                       type="email"
                       placeholder="email@example.com"
+                      onChange={(e) => {
+                        field.onChange(e);
+                        setGlobalError(null);
+                      }}
                     />
                   </FormControl>
                 </FormItem>
@@ -79,6 +121,7 @@ export default function LoginForm({ onSwitch, userAutenticado }: { onSwitch: (ne
                         href="#"
                         className="ml-auto text-sm font-medium text-gray-400"
                         prefetch={false}
+                        onClick={() => onSwitch("reenviar", field.value, false)}
                       >
                         Esqueceu sua senha?
                       </Link>
@@ -89,6 +132,10 @@ export default function LoginForm({ onSwitch, userAutenticado }: { onSwitch: (ne
                           {...field}
                           type={showPassword ? "text" : "password"}
                           className="py-3 px-3 w-full"
+                          onChange={(e) => {
+                            field.onChange(e);
+                            setGlobalError(null);
+                          }}
                         />
                         <div
                           className="absolute inset-y-0 right-0 flex items-center pr-3 cursor-pointer"
@@ -121,7 +168,11 @@ export default function LoginForm({ onSwitch, userAutenticado }: { onSwitch: (ne
 
           <p className="text-sm text-center mt-4 text-muted-foreground">
             Não tem uma conta?{" "}
-            <button type="button" onClick={() => onSwitch("register")} className="text-foreground hover:underline">
+            <button
+              type="button"
+              onClick={() => onSwitch("register", "", false)}
+              className="text-foreground hover:underline"
+            >
               Criar Conta
             </button>
           </p>

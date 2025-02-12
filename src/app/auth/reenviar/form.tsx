@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { FormProvider, useForm } from "react-hook-form";
 import { reenviarSchema } from "./schema";
-import { FormField, FormItem, FormLabel } from "@/components/ui/form";
+import { FormField, FormItem } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import type { ReenviarCodigoResponse } from "@/types/auth";
 import { useState } from "react";
@@ -11,7 +11,13 @@ import { useAuth } from "@/services/auth";
 export default function ReenviarForm({
     onSwitch,
     email: initialEmail,
-}: { onSwitch: (nextStep: "login" | "register" | "autenticar" | "reenviar", email: string) => void; email: string }) {
+}: {
+    onSwitch: (
+        nextStep: "login" | "register" | "autenticar" | "reenviar",
+        email: string,
+    ) => void;
+    email: string;
+}) {
     const [email, setEmail] = useState(initialEmail);
 
     const methods = useForm<ReenviarCodigoResponse>({
@@ -20,10 +26,11 @@ export default function ReenviarForm({
             email: email,
         },
     });
-    const { handleSubmit, control } = methods;
+    const { handleSubmit, setValue, watch, control, setError } = methods;
     const authService = useAuth();
+
     const onSubmit = async (data: ReenviarCodigoResponse) => {
-        const response = await authService.reenviarCodigoAutenticacao(data);
+        const response = await authService.esqueciSenha(data);
         if (response?.status === 200) {
             onSwitch("autenticar", methods.getValues("email"));
         }
@@ -33,22 +40,18 @@ export default function ReenviarForm({
         <FormProvider {...methods}>
             <form onSubmit={handleSubmit(onSubmit)}>
                 <h2 className="text-center text-xl font-semibold text-foreground ">
-                    Reenviar código
+                    Alterar Senha
                 </h2>
                 <p className="text-center text-muted-foreground">
-                    Enviamos um código para &nbsp;
-                    <span className="font-semibold text-foreground">{email}</span>
+                    Digite o endereço de e-mail que você usou para se registrar
                 </p>
-                <div className="grid gap-4 mb-4 px-2">
+                <div className="grid gap-4 mt-4 p-2">
                     <div className="grid gap-2">
                         <FormField
                             control={control}
                             name="email"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel className="font-medium text-muted-foreground">
-                                        E-mail
-                                    </FormLabel>
                                     <Input
                                         {...field}
                                         type="text"
@@ -68,12 +71,16 @@ export default function ReenviarForm({
                 <hr className="bold mx-3" />
 
                 <div className="flex justify-center gap-2 mt-4 px-2">
-                    <Button variant="secondary" className="w-full" onClick={() => onSwitch("autenticar", "")}>
+                    <Button
+                        variant="secondary"
+                        className="w-full"
+                        onClick={() => onSwitch("login", "")}
+                    >
                         Cancelar
                     </Button>
 
                     <Button type="submit" className="w-full">
-                        Reenviar
+                        Enviar
                     </Button>
                 </div>
             </form>

@@ -2,16 +2,16 @@ import { useLoading } from "@/context/LoadingContext";
 
 export function useApiRequest() {
   const { setLoading } = useLoading();
+  const API_URL = "http://localhost:8080"; // Pode ser extraído de variáveis de ambiente
 
-  return async function apiRequest<T = unknown>(
+  return async function apiRequest<T = unknown, R = unknown>(
     endpoint: string,
     method: "GET" | "POST" | "PUT" | "DELETE" = "POST",
     data?: T
-  ): Promise<Response | null> {
-    const API_URL = "http://localhost:8080";
-    
+  ): Promise<{ data?: R; error?: string; status?: number; fieldErrors?: Record<string, string> }> {
     try {
       setLoading(true);
+
       const response = await fetch(`${API_URL}${endpoint}`, {
         method,
         headers: {
@@ -21,20 +21,21 @@ export function useApiRequest() {
         mode: "cors",
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Erro na requisição");
-      }
-
       const contentType = response.headers.get("content-type");
-      if (contentType?.includes("application/json")) {
-        return response;
+
+      if (!response.ok) {
+        const errorData = contentType?.includes("application/json") ? await response.json() : null;
+        return {
+          error: errorData?.message || "Erro desconhecido",
+          status: response.status,
+          fieldErrors: errorData?.fieldErrors || null,
+        };
       }
 
-      return null;
-    } catch (error) {
-      console.error(`Erro na requisição ${method} ${endpoint}:`, error);
-      throw error;
+      const responseData = contentType?.includes("application/json") ? await response.json() : null;
+      return { data: responseData, status: response.status };
+    } catch {
+      return { error: "Erro de conexão com o servidor" };
     } finally {
       setLoading(false);
     }

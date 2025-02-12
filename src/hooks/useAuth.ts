@@ -9,7 +9,7 @@ export function useAuth() {
   useEffect(() => {
     const token = getAuthCookie();
     if (!token) {
-      router.push("/login");
+      router.push("/auth");
     } else {
       setIsAuthenticated(true);
     }
