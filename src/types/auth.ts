@@ -33,7 +33,7 @@ export interface RegisterFormInputs {
 
   export interface alterarSenhaResponse {
     novaSenha: string;
-    novaSenhaConfirmacao: string;
+    confirmarNovaSenha: string;
     codigoVerificacao: string;
     [key: string]: unknown;
   }

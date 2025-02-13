@@ -16,7 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/services/auth";
 import type { LoginFormInputs } from "@/types/auth";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { on } from "events";
+import { useToastContext } from "@/context/ToastContext";
 
 export default function LoginForm({
   onSwitch,
@@ -37,12 +37,10 @@ export default function LoginForm({
       password: "",
     },
   });
-
   const authService = useAuth();
   const [globalError, setGlobalError] = useState<string | null>(null);
   const onSubmit = async (data: LoginFormInputs) => {
     const { data: responseData, error, status } = await authService.loginUser(data);
-    debugger
     if (error) {
       setGlobalError(error);
       if (status === 401) {
@@ -57,6 +55,7 @@ export default function LoginForm({
 
   const [showPassword, setShowPassword] = useState(false);
   const { handleSubmit, control } = methods;
+  const { toastData, setToastData } = useToastContext();
 
   useEffect(() => {
     if (userAutenticado) {
@@ -67,6 +66,18 @@ export default function LoginForm({
     }
   }, [userAutenticado, toast]);
 
+  useEffect(() => {
+    if (toastData.showToast) {
+
+      toast({
+        title: toastData.toastMessage || "Notificação",
+        description: toastData.toastDescription || "",
+        variant: toastData.toastVariant || "default",
+      });
+
+      setToastData({ showToast: false });
+    }
+  }, [toastData, toast, setToastData]);
   return (
     <FormProvider {...methods}>
       <form className="space-y-3 w-full" onSubmit={handleSubmit(onSubmit)}>

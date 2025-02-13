@@ -7,6 +7,8 @@ import type { ReenviarCodigoResponse } from "@/types/auth";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/services/auth";
+import { useToastContext } from "@/context/ToastContext";
+import { useRouter } from "next/navigation";
 
 export default function ReenviarForm({
     onSwitch,
@@ -19,20 +21,25 @@ export default function ReenviarForm({
     email: string;
 }) {
     const [email, setEmail] = useState(initialEmail);
-
+    const router = useRouter();
     const methods = useForm<ReenviarCodigoResponse>({
         resolver: zodResolver(reenviarSchema),
         defaultValues: {
             email: email,
         },
     });
-    const { handleSubmit, setValue, watch, control, setError } = methods;
+    const { handleSubmit, control } = methods;
     const authService = useAuth();
-
+    const { setToastData } = useToastContext();
     const onSubmit = async (data: ReenviarCodigoResponse) => {
         const response = await authService.esqueciSenha(data);
         if (response?.status === 200) {
-            onSwitch("autenticar", methods.getValues("email"));
+            setToastData({
+                showToast: true,
+                toastMessage: "E-mail para alterar senha enviado com sucesso!",
+                toastDescription: "Verifique sua caixa de entrada. O e-mail pode ter sido enviado para a caixa de spam também.",
+            });
+            router.push("/");
         }
     };
 

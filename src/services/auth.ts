@@ -1,5 +1,5 @@
 import { useApiRequest } from "@/lib/api";
-import type { LoginFormInputs, ReenviarCodigoResponse, RegisterFormInputs, VerifyRespnse } from "../types/auth";
+import type { alterarSenhaResponse, LoginFormInputs, ReenviarCodigoResponse, RegisterFormInputs, VerifyRespnse } from "../types/auth";
 
 export function useAuth() {
   const apiRequest = useApiRequest();
@@ -28,6 +28,10 @@ export function useAuth() {
     return await apiRequest("/auth/esqueciSenha", "POST", data );
   }
 
+  async function alterarSenha(data: alterarSenhaResponse) {
+    return await apiRequest("/auth/alterarSenha", "POST", data);
+  }
+
   
   return {
     registerUser,
@@ -35,6 +39,7 @@ export function useAuth() {
     autenticarConta,
     logoutUser,
     reenviarCodigoAutenticacao,
-    esqueciSenha
+    esqueciSenha,
+    alterarSenha
   };
 }
